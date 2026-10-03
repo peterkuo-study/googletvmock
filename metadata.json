@@ -1,0 +1,6 @@
+{
+  "name": "Google TV",
+  "description": "Android TV 仿 Google TV 精美啟動器，支援首頁影視輪播、應用程式列表及自訂類別分類",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
