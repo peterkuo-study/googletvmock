@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">Google TV</string>
+    <string name="tab_search">搜尋</string>
+    <string name="tab_for_you">專屬推薦</string>
+    <string name="tab_movies">電影與節目</string>
+    <string name="tab_apps">應用程式</string>
+    <string name="tab_library">影音庫</string>
+    <string name="your_apps">您的應用程式</string>
+    <string name="all_apps">所有應用程式</string>
+    <string name="continue_watching">繼續觀賞</string>
+    <string name="top_picks">為您精選</string>
+    <string name="popular_movies">熱門電影</string>
+    <string name="trending_shows">熱門影集</string>
+    <string name="category_streaming">串流影音</string>
+    <string name="category_games">遊戲娛樂</string>
+    <string name="category_tools">實用工具</string>
+    <string name="category_music">音樂廣播</string>
+    <string name="category_news">新聞體育</string>
+    <string name="category_favorites">我的最愛</string>
+    <string name="btn_play">立即播放</string>
+    <string name="btn_watchlist">加入待播</string>
+    <string name="btn_details">詳細資訊</string>
+    <string name="btn_add_category">新增分類</string>
+    <string name="btn_manage_apps">管理應用程式</string>
+    <string name="set_default_launcher">設為預設主螢幕</string>
+    <string name="settings">系統設定</string>
+</resources>
