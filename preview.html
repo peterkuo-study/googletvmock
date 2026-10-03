@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google TV 桌面預覽</title>
+  <style>
+    :root {
+      --bg: #0b1019;
+      --panel: #141a26;
+      --panel-2: #1b2332;
+      --text: #eef3ff;
+      --muted: #9baccc;
+      --blue: #4f8dff;
+      --chip: #253046;
+      --ok: #35d07f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: radial-gradient(circle at 20% -20%, #1a2740, var(--bg) 45%);
+      color: var(--text);
+    }
+    .app {
+      max-width: 1280px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 28px 40px;
+      gap: 14px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(8px);
+      background: rgba(11,16,25,.75);
+      padding: 8px 0;
+    }
+    .brand { font-weight: 700; letter-spacing: .4px; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .tab.active { background: var(--chip); border-color: #304467; color: var(--text); }
+    .clock { color: var(--muted); font-size: 14px; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .hero {
+      border-radius: 16px;
+      min-height: 360px;
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: end;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,.1) 20%, rgba(0,0,0,.8));
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 65%; }
+    .hero h1 { margin: 0 0 8px; font-size: 34px; }
+    .hero p { margin: 0 0 12px; color: #dbe5ff; }
+    .row-title { margin: 24px 0 12px; font-size: 20px; }
+    .scroller { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+    .card, .app-tile {
+      background: var(--panel);
+      border: 1px solid #253046;
+      border-radius: 12px;
+      padding: 10px;
+      min-width: 210px;
+      cursor: pointer;
+    }
+    .app-tile { min-width: 160px; text-align: center; }
+    .poster { width: 100%; height: 110px; border-radius: 8px; object-fit: cover; margin-bottom: 8px; }
+    .meta { color: var(--muted); font-size: 12px; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 10px; }
+    .chip {
+      border: 0;
+      background: var(--chip);
+      color: #cfe0ff;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .chip.active { background: var(--blue); color: #fff; }
+    .btn {
+      border: 0;
+      background: var(--blue);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+    .btn.subtle { background: #2b3750; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 12px;
+    }
+    .progress {
+      width: 100%;
+      height: 6px;
+      background: #2a3346;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress > span { display: block; height: 100%; background: var(--ok); }
+    .search-input {
+      width: 100%;
+      border: 1px solid #2e3d5e;
+      border-radius: 10px;
+      background: #101624;
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      display: none; align-items: center; justify-content: center; z-index: 40;
+    }
+    .modal.show { display: flex; }
+    .dialog {
+      width: min(760px, 92vw);
+      background: #121a2a;
+      border: 1px solid #2d3c5f;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .dialog img { width: 100%; height: 260px; object-fit: cover; }
+    .dialog-body { padding: 16px; }
+    .muted { color: var(--muted); }
+    .ambient {
+      position: fixed; inset: 0; z-index: 30; display: none;
+      background: #000; color: #fff; align-items: center; justify-content: center;
+      flex-direction: column; gap: 10px;
+    }
+    .ambient.show { display: flex; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">Google TV（桌面預覽）</div>
+      <div class="tabs" id="tabs"></div>
+      <div class="clock" id="clock"></div>
+    </div>
+
+    <section id="screen-home" class="screen active"></section>
+    <section id="screen-movies" class="screen"></section>
+    <section id="screen-apps" class="screen"></section>
+    <section id="screen-search" class="screen"></section>
+    <section id="screen-library" class="screen"></section>
+  </div>
+
+  <div class="modal" id="mediaModal">
+    <div class="dialog">
+      <img id="modalImg" alt="" />
+      <div class="dialog-body">
+        <h2 id="modalTitle" style="margin:0 0 6px"></h2>
+        <div id="modalMeta" class="muted" style="margin-bottom:8px"></div>
+        <p id="modalOverview" class="muted" style="line-height:1.5"></p>
+        <button class="btn" id="watchlistBtn">加入/移除待播</button>
+        <button class="btn subtle" onclick="closeModal()">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ambient" id="ambientLayer">
+    <div style="font-size:48px" id="ambientClock"></div>
+    <button class="btn" onclick="toggleAmbient(false)">離開環境模式</button>
+  </div>
+
+<script>
+const image = (name) => `app/src/main/res/drawable/${name}`;
+
+const heroItems = [
+  { id:"hero_1", title:"星際星雲：深空旅者", subtitle:"Google TV 獨家首播", rating:"9.4", year:"2026", overview:"在遠離太陽系深處的環狀星雲行星，一位宇航探險家發現了一座沉睡了億萬年的遠古外星文明星門，人類的命運即將由此改寫。", provider:"Google TV 推薦", backdrop:image("hero_movie_scifi_1791004731275.jpg") },
+  { id:"hero_2", title:"新東京：賽博霓虹之夜", subtitle:"全球熱播原創影集", rating:"9.1", year:"2026", overview:"西元2089年的高聳雨夜都會，空中飛車在立體全息招牌間穿梭。", provider:"Netflix", backdrop:image("hero_movie_cyber_1791004743873.jpg") },
+  { id:"hero_3", title:"阿爾卑斯極光：冰川秘境", subtitle:"BBC 頂級生態紀錄片", rating:"9.7", year:"2025", overview:"見證落日餘暉染金巍峨雪山與碧藍冰湖的震撼瞬間。", provider:"Disney+", backdrop:image("hero_movie_nature_1791004754125.jpg") }
+];
+
+const continueWatching = [
+  { id:"cw_1", title:"星際星雲：深空旅者", subtitle:"剩餘 42 分鐘", progress:68, backdrop:image("hero_movie_scifi_1791004731275.jpg") },
+  { id:"cw_2", title:"新東京：賽博霓虹之夜", subtitle:"第 2 季 第 4 集", progress:35, backdrop:image("hero_movie_cyber_1791004743873.jpg") },
+  { id:"cw_3", title:"天空之城：浮空秘境", subtitle:"剩餘 15 分鐘", progress:88, backdrop:image("poster_fantasy_1791004828430.jpg") }
+];
+
+const topPicks = [
+  { id:"pick_1", title:"泰坦崛起：鋼鐵先鋒", subtitle:"2026 年度票房冠軍", rating:"8.9", year:"2026", overview:"重裝機甲英雄誓死捍衛最後的家園防線。", backdrop:image("poster_superhero_1791004805660.jpg") },
+  { id:"pick_2", title:"天空之城：浮空秘境", subtitle:"日本吉卜力風奇幻神作", rating:"9.5", year:"2025", overview:"浮游在星空深處的不可思議秘境島嶼。", backdrop:image("poster_fantasy_1791004828430.jpg") },
+  { id:"pick_3", title:"星際星雲：深空旅者", subtitle:"科幻史詩", rating:"9.4", year:"2026", overview:"探尋宇宙最神秘的深空星雲。", backdrop:image("hero_movie_scifi_1791004731275.jpg") },
+  { id:"pick_4", title:"新東京：賽博霓虹之夜", subtitle:"熱播影集", rating:"9.1", year:"2026", overview:"霓虹與陰影中的殊死搏鬥。", backdrop:image("hero_movie_cyber_1791004743873.jpg") },
+  { id:"pick_5", title:"阿爾卑斯極光：冰川秘境", subtitle:"極限自然記錄", rating:"9.7", year:"2025", overview:"大自然最壯闊美麗的一幕。", backdrop:image("hero_movie_nature_1791004754125.jpg") }
+];
+
+const apps = [
+  { packageName:"com.google.android.youtube.tv", appName:"YouTube", fav:true, category:"串流影音" },
+  { packageName:"com.netflix.ninja", appName:"Netflix", fav:true, category:"串流影音" },
+  { packageName:"com.disney.disneyplus", appName:"Disney+", fav:true, category:"串流影音" },
+  { packageName:"com.amazon.amazonvideo.livingroom", appName:"Prime Video", fav:false, category:"串流影音" },
+  { packageName:"com.spotify.tv.android", appName:"Spotify", fav:false, category:"音樂廣播" },
+  { packageName:"com.android.vending", appName:"Google Play 商店", fav:false, category:"實用工具" },
+  { packageName:"tv.twitch.android.app", appName:"Twitch", fav:false, category:"遊戲娛樂" },
+  { packageName:"com.plexapp.android", appName:"Plex", fav:false, category:"串流影音" },
+  { packageName:"com.google.android.videos", appName:"Google TV 影視", fav:true, category:"串流影音" },
+  { packageName:"com.android.tv.settings", appName:"TV 設定", fav:false, category:"實用工具" }
+];
+
+const tabs = [
+  { key:"home", label:"首頁推薦" },
+  { key:"movies", label:"電影與節目" },
+  { key:"apps", label:"應用程式" },
+  { key:"search", label:"搜尋" },
+  { key:"library", label:"影音庫" }
+];
+
+let currentTab = "home";
+let currentHero = 0;
+let watchlist = new Set(["pick_2"]);
+let modalItem = null;
+let appCategoryFilter = "全部程式";
+
+function renderTabs() {
+  const el = document.getElementById("tabs");
+  el.innerHTML = `
+    ${tabs.map(t => `<button class="tab ${currentTab===t.key?"active":""}" onclick="switchTab('${t.key}')">${t.label}</button>`).join("")}
+    <button class="tab" onclick="toggleAmbient(true)">環境模式</button>
+  `;
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  renderTabs();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${tab}`).classList.add('active');
+  renderAll();
+}
+
+function renderHome() {
+  const h = heroItems[currentHero];
+  document.getElementById("screen-home").innerHTML = `
+    <div class="hero" style="background-image:url('${h.backdrop}')">
+      <div class="hero-content">
+        <h1>${h.title}</h1>
+        <p>${h.subtitle} · ${h.year} · ⭐ ${h.rating}</p>
+        <p>${h.overview}</p>
+        <button class="btn" onclick="openMedia('${h.id}')">詳細資訊</button>
+        <button class="btn subtle" onclick="toggleWatchlist('${h.id}')">${watchlist.has(h.id)?'移出待播':'加入待播'}</button>
+      </div>
+    </div>
+
+    <h3 class="row-title">您的應用程式</h3>
+    <div class="scroller">
+      ${apps.filter(a=>a.fav).map(a=>`<div class="app-tile" onclick="launchApp('${a.packageName}')"><div style="font-size:28px">📺</div><div>${a.appName}</div><div class="meta">${a.packageName}</div></div>`).join('')}
+    </div>
+
+    <h3 class="row-title">繼續觀賞</h3>
+    <div class="scroller">
+      ${continueWatching.map(i=>`<div class="card" onclick="openMedia('${i.id}')"><img class="poster" src="${i.backdrop}" alt=""><div>${i.title}</div><div class="meta">${i.subtitle}</div><div class="progress"><span style="width:${i.progress}%"></span></div></div>`).join('')}
+    </div>
+
+    <h3 class="row-title">為您推薦的精選電影與影集</h3>
+    <div class="scroller">${renderMediaCards(topPicks)}</div>
+  `;
+}
+
+function renderMediaCards(items) {
+  return items.map(i=>`<div class="card" onclick="openMedia('${i.id}')"><img class="poster" src="${i.backdrop}" alt=""><div>${i.title}</div><div class="meta">${i.subtitle || ''}</div></div>`).join('');
+}
+
+function renderMovies() {
+  document.getElementById("screen-movies").innerHTML = `
+    <h2>電影與節目</h2>
+    <p class="muted">熱門推薦與精選內容</p>
+    <div class="grid">${renderMediaCards(topPicks.concat(heroItems))}</div>
+  `;
+}
+
+function renderApps() {
+  const categories = ["全部程式","⭐ 我的最愛", ...new Set(apps.map(a=>a.category))];
+  const filtered = apps.filter(a => appCategoryFilter === "全部程式" ? true : appCategoryFilter === "⭐ 我的最愛" ? a.fav : a.category === appCategoryFilter);
+  document.getElementById("screen-apps").innerHTML = `
+    <h2>應用程式庫</h2>
+    <p class="muted">共 ${apps.length} 個電視應用程式 • 支援分類篩選</p>
+    <div class="chips">
+      ${categories.map(c=>`<button class="chip ${c===appCategoryFilter?'active':''}" onclick="setCategory('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('')}
+    </div>
+    <div class="grid">
+      ${filtered.map(a=>`<div class="app-tile"><div style="font-size:28px">📱</div><div>${a.appName}</div><div class="meta">${a.category}</div><button class="btn" style="margin-top:8px" onclick="launchApp('${a.packageName}')">啟動</button></div>`).join('')}
+    </div>
+  `;
+}
+
+function setCategory(c){ appCategoryFilter = c; renderApps(); }
+
+function renderSearch() {
+  document.getElementById("screen-search").innerHTML = `
+    <h2>搜尋</h2>
+    <input id="searchInput" class="search-input" placeholder="搜尋電影、影集、應用程式" oninput="runSearch(this.value)">
+    <div id="searchResults" class="grid"></div>
+  `;
+  runSearch("");
+}
+
+function runSearch(q) {
+  q = (q || "").trim().toLowerCase();
+  const media = [...heroItems, ...continueWatching, ...topPicks];
+  const mediaResults = media.filter(i => !q || i.title.toLowerCase().includes(q));
+  const appResults = apps.filter(a => !q || a.appName.toLowerCase().includes(q));
+  document.getElementById("searchResults").innerHTML = [
+    ...appResults.map(a=>`<div class="card" onclick="launchApp('${a.packageName}')"><div>${a.appName}</div><div class="meta">應用程式 · ${a.category}</div></div>`),
+    ...mediaResults.map(i=>`<div class="card" onclick="openMedia('${i.id}')"><img class="poster" src="${i.backdrop}" alt=""><div>${i.title}</div><div class="meta">影視內容</div></div>`)
+  ].join('') || '<div class="muted">找不到結果</div>';
+}
+
+function renderLibrary() {
+  const allMedia = [...heroItems, ...topPicks];
+  const picks = allMedia.filter(i => watchlist.has(i.id));
+  document.getElementById("screen-library").innerHTML = `
+    <h2>我的影音庫</h2>
+    <p class="muted">待播清單、已購內容與影集收藏</p>
+    <h3 class="row-title">待播清單 (${picks.length})</h3>
+    ${picks.length ? `<div class="scroller">${renderMediaCards(picks)}</div>` : `<div class="card">待播清單目前是空的，請到首頁加入。</div>`}
+    <h3 class="row-title">已購與租借電影</h3>
+    <div class="scroller">${renderMediaCards(topPicks.slice(0,3))}</div>
+  `;
+}
+
+function byId(id) {
+  return [...heroItems, ...continueWatching, ...topPicks].find(i => i.id === id);
+}
+
+function openMedia(id) {
+  modalItem = byId(id);
+  if (!modalItem) return;
+  document.getElementById('modalImg').src = modalItem.backdrop;
+  document.getElementById('modalTitle').textContent = modalItem.title;
+  document.getElementById('modalMeta').textContent = `${modalItem.year || ''} · ⭐ ${modalItem.rating || '-'} · ${modalItem.provider || 'Google TV'}`;
+  document.getElementById('modalOverview').textContent = modalItem.overview || '此內容暫無更多簡介。';
+  document.getElementById('watchlistBtn').textContent = watchlist.has(modalItem.id) ? '從待播清單移除' : '加入待播清單';
+  document.getElementById('mediaModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('mediaModal').classList.remove('show'); }
+
+function toggleWatchlist(id) {
+  const targetId = id || (modalItem && modalItem.id);
+  if (!targetId) return;
+  watchlist.has(targetId) ? watchlist.delete(targetId) : watchlist.add(targetId);
+  renderAll();
+  if (modalItem && targetId === modalItem.id) openMedia(targetId);
+}
+
+document.getElementById('watchlistBtn').addEventListener('click', ()=> toggleWatchlist());
+document.getElementById('mediaModal').addEventListener('click', (e)=> { if (e.target.id === 'mediaModal') closeModal(); });
+
+function launchApp(pkg) {
+  alert(`桌面預覽模式：\n無法在瀏覽器直接啟動 Android 套件\n${pkg}`);
+}
+
+function toggleAmbient(show) {
+  document.getElementById('ambientLayer').classList.toggle('show', show);
+}
+
+function renderAll() {
+  renderHome();
+  renderMovies();
+  renderApps();
+  renderSearch();
+  renderLibrary();
+}
+
+function tickClock() {
+  const t = new Date();
+  const hh = String(t.getHours()).padStart(2,'0');
+  const mm = String(t.getMinutes()).padStart(2,'0');
+  const now = `${hh}:${mm}`;
+  document.getElementById('clock').textContent = now;
+  document.getElementById('ambientClock').textContent = now;
+}
+
+setInterval(() => {
+  tickClock();
+  currentHero = (currentHero + 1) % heroItems.length;
+  if (currentTab === 'home') renderHome();
+}, 8000);
+setInterval(tickClock, 1000);
+
+renderTabs();
+renderAll();
+tickClock();
+</script>
+</body>
+</html>

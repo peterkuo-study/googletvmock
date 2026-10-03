@@ -20,3 +20,11 @@ View your app in AI Studio: https://ai.studio/apps/71b121c7-3385-4036-9d2f-7d378
 5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
 6. Run the app on an emulator or physical device
 7. If you have already published your app in AI Studio, please [request upload key reset](https://support.google.com/googleplay/android-developer/answer/9842756#zippy=%2Crequest-an-upload-key-reset) in Google Play Console.
+
+## Desktop preview (HTML)
+
+If you want a direct desktop preview without running Android Studio, open:
+
+`/home/runner/work/googletvmock/googletvmock/preview.html`
+
+The page is a standalone browser mock of the launcher UI (tabs, hero carousel, app list, search, and library) and reuses image assets from `app/src/main/res/drawable/`.
